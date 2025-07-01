@@ -18,7 +18,7 @@ def take_full_screen_screenshot(save_path):
     screenshot.save(save_path)
     #add_timestamp_to_screenshot(save_path)
 
-WAITING_PERIOD = (5, 10)
+WAITING_PERIOD = (1, 3)
 
 def fit_page_to_screen(driver):
     screen_w, screen_h = driver.execute_script(
