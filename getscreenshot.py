@@ -23,7 +23,7 @@ def fit_page_to_screen(driver):
         "return [window.screen.availWidth, window.screen.availHeight];")
     driver.set_window_size(screen_w, screen_h)
     view_w, view_h = driver.execute_script(
-        "return [ window.innerWidth, window.innerHeight ];")    
+        "return [ window.innerWidth, window.innerHeight ];")
     
     page_w, page_h = driver.execute_script(
         "return [ Math.max(document.body.scrollWidth,"
