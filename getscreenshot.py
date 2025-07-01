@@ -10,6 +10,8 @@ from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 import pyautogui
 
+os.environ["WDM_SSL_VERIFY"] = "0"
+
 def take_full_screen_screenshot(save_path):
     screenshot = pyautogui.screenshot()
     screenshot.save(save_path)

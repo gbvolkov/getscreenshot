@@ -8,6 +8,8 @@ from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 
+os.environ["WDM_SSL_VERIFY"] = "0"
+
 def take_full_page_screenshot(driver, save_path):
     total_height = driver.execute_script("return document.body.scrollHeight")
     driver.set_window_size(1920, total_height)
@@ -137,6 +139,7 @@ def get_page(page_url, driver):
 
 def main(base_url, screenshot_dir='./screens'):
     driver = enable_headless_mode()
+    #driver = enable_normal_mode()
     driver = get_page(base_url, driver)
     time.sleep(random.uniform(5, 10))  # Random delay
     
@@ -145,9 +148,12 @@ def main(base_url, screenshot_dir='./screens'):
     
     for page in range(1, total_pages + 1):
         url = f"https://www.avito.ru/all?cd=1&p={page}&q=%D0%B8%D0%BD%D1%82%D0%B5%D1%80%D0%BB%D0%B8%D0%B7%D0%B8%D0%BD%D0%B3"
+        print(f"Getting {url}")
         driver = get_page(url, driver)
         time.sleep(random.uniform(5, 10))  # Random delay
+        print(f"...saving {url}")
         take_screenshots(driver, screenshot_dir)
+        print(f"Saved {url}")
     
     driver.quit()
 
