@@ -18,6 +18,8 @@ def take_full_screen_screenshot(save_path):
     screenshot.save(save_path)
     #add_timestamp_to_screenshot(save_path)
 
+WAITING_PERIOD = (5, 10)
+
 def fit_page_to_screen(driver):
     screen_w, screen_h = driver.execute_script(
         "return [window.screen.availWidth, window.screen.availHeight];")
@@ -33,15 +35,7 @@ def fit_page_to_screen(driver):
     zoom = min(view_w / page_w, view_h / page_h, 1)
 
     driver.execute_script(f"document.body.style.zoom='{int(zoom*100)}%'")
-    #driver.execute_cdp_cmd(
-    #    "Emulation.setDeviceMetricsOverride",       # ← one call does it
-    #    {
-    #        "width":  screen_w,
-    #        "height": screen_h,
-    #        "mobile": False,
-    #        "deviceScaleFactor": 1,
-    #        "scale": zoom
-    #    })    
+   
     driver.execute_cdp_cmd("Emulation.setScrollbarsHidden",
                            {"hidden": True}) 
 
@@ -51,7 +45,7 @@ def take_full_page_screenshot(driver, save_path):
     driver.execute_script(f"document.body.insertAdjacentHTML('beforeend', '<div style=\"position:fixed; bottom:10px; right:10px; background:rgba(0, 0, 0, 0.5); color:white; padding:5px; font-size:12px;\">{timestamp}</div>');")
     time.sleep(1)
     fit_page_to_screen(driver)
-    time.sleep(random.uniform(5, 10))  # Random delay
+    time.sleep(random.uniform(*WAITING_PERIOD))  # Random delay
     driver.save_screenshot(save_path)
 
 def check_for_title_wrapper(driver):
@@ -70,7 +64,7 @@ def interact_for_missing_element(driver, href):
         if not check_for_title_wrapper(driver):
             print("Element missing. Please interact with the page in the browser window.")
             while not check_for_title_wrapper(driver):
-                time.sleep(random.uniform(5, 10))  # Random delay
+                time.sleep(random.uniform(*WAITING_PERIOD))  # Random delay
 
 def enable_normal_mode():
     options = Options()
@@ -107,7 +101,7 @@ def take_screenshots(soup, driver, screenshot_dir='./screens'):
         screenshot_path = os.path.join(screenshot_dir, f"post_screenshot_{index + 1}.png")
         take_full_page_screenshot(driver, screenshot_path)
         print(f"Screenshot for item {index + 1} saved as {screenshot_path}")
-        time.sleep(random.uniform(2, 5))  # Random delay
+        time.sleep(random.uniform(*WAITING_PERIOD))  # Random delay
     
 def get_total_pages(soup):
     try:
@@ -128,13 +122,13 @@ def get_page(page_url, driver):
     while True:
         driver.get(page_url)
 
-        time.sleep(random.uniform(5, 10))  # Random delay
+        time.sleep(random.uniform(*WAITING_PERIOD))  # Random delay
         attempts = 0
         page_source = driver.page_source
         soup = BeautifulSoup(page_source, 'html.parser')
         while attempts < 10 and check_for_ip_restriction(soup):
             print("IP restriction detected. Please solve the CAPTCHA in the browser window.")
-            time.sleep(random.uniform(5, 10))  # Random delay
+            time.sleep(random.uniform(*WAITING_PERIOD))  # Random delay
             page_source = driver.page_source
             soup = BeautifulSoup(page_source, 'html.parser')
             attempts = attempts+1
@@ -151,7 +145,7 @@ def main(base_url, screenshot_dir='./screens'):
     driver = enable_normal_mode()
     print(f"Getting {base_url}")
     soup = get_page(base_url, driver)
-    time.sleep(random.uniform(2, 5))  # Random delay
+    time.sleep(random.uniform(*WAITING_PERIOD))  # Random delay
     
     while True:
         last_height = driver.execute_script("return document.body.scrollHeight")
