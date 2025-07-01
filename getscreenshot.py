@@ -9,6 +9,7 @@ from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 import pyautogui
+import re
 
 os.environ["WDM_SSL_VERIFY"] = "0"
 
@@ -17,12 +18,40 @@ def take_full_screen_screenshot(save_path):
     screenshot.save(save_path)
     #add_timestamp_to_screenshot(save_path)
 
+def fit_page_to_screen(driver):
+    screen_w, screen_h = driver.execute_script(
+        "return [window.screen.availWidth, window.screen.availHeight];")
+    driver.set_window_size(screen_w, screen_h)
+    view_w, view_h = driver.execute_script(
+        "return [ window.innerWidth, window.innerHeight ];")    
+    
+    page_w, page_h = driver.execute_script(
+        "return [ Math.max(document.body.scrollWidth,"
+        "                document.documentElement.scrollWidth),"
+        "         Math.max(document.body.scrollHeight,"
+        "                document.documentElement.scrollHeight) ];")
+    zoom = min(view_w / page_w, view_h / page_h, 1)
+
+    driver.execute_script(f"document.body.style.zoom='{int(zoom*100)}%'")
+    #driver.execute_cdp_cmd(
+    #    "Emulation.setDeviceMetricsOverride",       # ← one call does it
+    #    {
+    #        "width":  screen_w,
+    #        "height": screen_h,
+    #        "mobile": False,
+    #        "deviceScaleFactor": 1,
+    #        "scale": zoom
+    #    })    
+    driver.execute_cdp_cmd("Emulation.setScrollbarsHidden",
+                           {"hidden": True}) 
 
 def take_full_page_screenshot(driver, save_path):
     # Inject timestamp into the page
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     driver.execute_script(f"document.body.insertAdjacentHTML('beforeend', '<div style=\"position:fixed; bottom:10px; right:10px; background:rgba(0, 0, 0, 0.5); color:white; padding:5px; font-size:12px;\">{timestamp}</div>');")
-    time.sleep(2)
+    time.sleep(1)
+    fit_page_to_screen(driver)
+    time.sleep(random.uniform(5, 10))  # Random delay
     driver.save_screenshot(save_path)
 
 def check_for_title_wrapper(driver):
@@ -34,19 +63,20 @@ def check_for_title_wrapper(driver):
 
 def interact_for_missing_element(driver, href):
     driver.get(href)
-    time.sleep(5)  # Wait for the page to load
+    time.sleep(random.uniform(5, 10))  # Random delay
     if not check_for_title_wrapper(driver):
         driver.refresh()
         time.sleep(5)  # Wait for the page to load
         if not check_for_title_wrapper(driver):
             print("Element missing. Please interact with the page in the browser window.")
             while not check_for_title_wrapper(driver):
-                time.sleep(5)  # Wait for the user to interact
+                time.sleep(random.uniform(5, 10))  # Random delay
 
 def enable_normal_mode():
     options = Options()
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-blink-features=AutomationControlled")
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=options)
     driver.execute_cdp_cmd('Emulation.setPageScaleFactor', {'pageScaleFactor': 0.5})
@@ -64,8 +94,8 @@ def enable_headless_mode():
 def take_screenshots(soup, driver, screenshot_dir='./screens'):
     if not os.path.exists(screenshot_dir):
         os.makedirs(screenshot_dir)
-    
-    items = soup.find_all('div', class_='iva-item-title-py3i_')
+    class_pattern = re.compile(r"^iva-item-title-\S+$")
+    items = soup.find_all('div', class_=class_pattern)
     print(f"Found {len(items)} elements on the page {driver.current_url}")
 
     for index, item in enumerate(items):
@@ -104,7 +134,7 @@ def get_page(page_url, driver):
         soup = BeautifulSoup(page_source, 'html.parser')
         while attempts < 10 and check_for_ip_restriction(soup):
             print("IP restriction detected. Please solve the CAPTCHA in the browser window.")
-            time.sleep(15)  # Random delay
+            time.sleep(random.uniform(5, 10))  # Random delay
             page_source = driver.page_source
             soup = BeautifulSoup(page_source, 'html.parser')
             attempts = attempts+1
@@ -113,29 +143,28 @@ def get_page(page_url, driver):
             driver.quit()
             exit()
         #driver.quit()
-        driver.execute_script("document.body.style.zoom='50%'")
+        #driver.execute_script("document.body.style.zoom='50%'")
         return soup
     
 
 def main(base_url, screenshot_dir='./screens'):
-
     driver = enable_normal_mode()
+    print(f"Getting {base_url}")
     soup = get_page(base_url, driver)
-    total_pages = get_total_pages(soup)
+    time.sleep(random.uniform(2, 5))  # Random delay
     
-    for page in range(1, total_pages + 1):
-        url = f"https://www.avito.ru/brands/ileasing_auto/items/all?sellerId=bb0a7f8b42c052f45809909d17857309"
-        soup = get_page(url, driver)
-        while True:
-            last_height = driver.execute_script("return document.body.scrollHeight")
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(2)
-            new_height = driver.execute_script("return document.body.scrollHeight")
-            if new_height == last_height:
-                break
-            last_height = new_height          
-        soup = BeautifulSoup(driver.page_source, 'html.parser')
-        take_screenshots(soup, driver, screenshot_dir)
+    while True:
+        last_height = driver.execute_script("return document.body.scrollHeight")
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(2)
+        new_height = driver.execute_script("return document.body.scrollHeight")
+        if new_height == last_height:
+            break
+        last_height = new_height          
+    soup = BeautifulSoup(driver.page_source, 'html.parser')
+    print(f"...saving {base_url}")
+    take_screenshots(soup, driver, screenshot_dir)
+    print(f"Saved {base_url}")
 
 # Example usage
 base_url = "https://www.avito.ru/brands/ileasing_auto/items/all?sellerId=bb0a7f8b42c052f45809909d17857309"
