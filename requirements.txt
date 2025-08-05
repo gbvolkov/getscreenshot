@@ -2,4 +2,5 @@ selenium
 webdriver-manager
 bs4
 
+psutil
 PyAutoGUI

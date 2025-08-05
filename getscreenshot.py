@@ -117,6 +117,36 @@ def check_for_ip_restriction(soup):
     restricted_element = soup.find(string="Доступ ограничен: проблема с IP")
     return restricted_element is not None
 
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
+def bring_to_front(driver):
+    # Best effort for Chromium
+    try:
+        driver.execute_cdp_cmd("Page.bringToFront", {})
+    except Exception:
+        pass
+    try:
+        driver.maximize_window()
+    except Exception:
+        pass
+def alert(driver, message):
+    bring_to_front(driver)
+    driver.execute_script("""
+        const msg = arguments[0];
+        try {window.focus(); } catch (e) {}
+        setTimeout(() => { alert(msg); }, 0);""", message)
+    wait_until_no_alert(driver)
+
+def wait_until_no_alert(driver, max_wait_seconds=300):
+    bring_to_front(driver)
+    # If an alert is up, show it to the user and wait until they close/solve it
+    try:
+        alert = WebDriverWait(driver, 1).until(EC.alert_is_present())
+        print(f"Site alert shown to user: {alert.text!r}")
+    except Exception:
+        pass
+    WebDriverWait(driver, max_wait_seconds).until_not(EC.alert_is_present())
 
 def get_page(page_url, driver):
     while True:
@@ -127,6 +157,7 @@ def get_page(page_url, driver):
         soup = BeautifulSoup(page_source, 'html.parser')
         while attempts < 10 and check_for_ip_restriction(soup):
             print("IP restriction detected. Please solve the CAPTCHA in the browser window.")
+            alert(driver, "Пожалуйста, решите CAPCHA для продолжения.")
             time.sleep(random.uniform(*WAITING_PERIOD))  # Random delay
             page_source = driver.page_source
             soup = BeautifulSoup(page_source, 'html.parser')
