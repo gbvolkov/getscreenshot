@@ -121,7 +121,6 @@ def check_for_ip_restriction(soup):
 def get_page(page_url, driver):
     while True:
         driver.get(page_url)
-
         time.sleep(random.uniform(*WAITING_PERIOD))  # Random delay
         attempts = 0
         page_source = driver.page_source
@@ -142,10 +141,12 @@ def get_page(page_url, driver):
     
 
 def main(base_url, screenshot_dir='./screens'):
+    screenshot_dir = f"{screenshot_dir}/{datetime.now().strftime("%Y%m%d%H%M")}"
     driver = enable_normal_mode()
     print(f"Getting {base_url}")
     soup = get_page(base_url, driver)
     time.sleep(random.uniform(*WAITING_PERIOD))  # Random delay
+    
     
     while True:
         last_height = driver.execute_script("return document.body.scrollHeight")
